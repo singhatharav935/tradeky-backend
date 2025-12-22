@@ -2,7 +2,6 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const jwt = require('jsonwebtoken');
 const connectDB = require('./config/db');
 
 // Load environment variables
@@ -24,31 +23,12 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ====== PROTECTED TEST ROUTE ======
-app.get('/api/protected', (req, res) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    return res.status(200).json({
-      success: true,
-      message: 'Protected route accessed',
-      user: decoded,
-    });
-  } catch (error) {
-    return res.status(401).json({ message: 'Invalid or expired token' });
-  }
-});
-
-// ====== AUTH ROUTES ======
+// ====== ROUTES ======
 const authRoutes = require('./routes/authRoutes');
+const protectedRoutes = require('./routes/protectedRoutes');
+
 app.use('/api/auth', authRoutes);
+app.use('/api', protectedRoutes);
 
 // ====== START SERVER ======
 const PORT = process.env.PORT || 7000;
