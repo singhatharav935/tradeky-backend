@@ -13,9 +13,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ====== PUBLIC ROUTES ======
+// ====== ROOT (IMPORTANT FIX) ======
+app.get('/', (req, res) => {
+  return res.status(200).json({
+    status: 'ok',
+    message: 'TradeKY Backend Live',
+  });
+});
 
-// Health check
+// ====== HEALTH CHECK ======
 app.get('/api/health', (req, res) => {
   return res.status(200).json({
     status: 'ok',
@@ -26,9 +32,22 @@ app.get('/api/health', (req, res) => {
 // ====== ROUTES ======
 const authRoutes = require('./routes/authRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
+const tradeRoutes = require('./routes/tradeRoutes');
+const communityRoutes = require('./routes/communityRoutes');
 
+console.log('✅ Routes loaded');
+
+// Auth
 app.use('/api/auth', authRoutes);
+
+// Protected test route
 app.use('/api', protectedRoutes);
+
+// Trades
+app.use('/api/trades', tradeRoutes);
+
+// Community (posts, likes, follow later)
+app.use('/api/community', communityRoutes);
 
 // ====== START SERVER ======
 const PORT = process.env.PORT || 7000;
