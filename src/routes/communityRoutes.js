@@ -26,6 +26,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.get('/', async (req, res) => {
   const posts = await Strategy.find()
     .populate('user', 'name')
+    .populate('comments.user', 'name') // 🔥 COMMENTS USER
     .sort({ createdAt: -1 });
 
   res.json(posts);
@@ -42,6 +43,28 @@ router.post('/:id/like', authMiddleware, async (req, res) => {
     post.likes.push(req.user.id);
     await post.save();
   }
+
+  res.json(post);
+});
+
+/**
+ * POST /api/community/:id/comment
+ */
+router.post('/:id/comment', authMiddleware, async (req, res) => {
+  const { text } = req.body;
+  if (!text?.trim()) {
+    return res.status(400).json({ error: 'Comment required' });
+  }
+
+  const post = await Strategy.findById(req.params.id);
+  if (!post) return res.status(404).json({ error: 'Not found' });
+
+  post.comments.push({
+    user: req.user.id,
+    text,
+  });
+
+  await post.save();
   res.json(post);
 });
 
