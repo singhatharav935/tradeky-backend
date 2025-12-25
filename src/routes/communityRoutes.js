@@ -1,36 +1,25 @@
 const express = require('express');
+const Strategy = require('../models/strategy');
+const authMiddleware = require('../middleware/authMiddleware');
+
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const Strategy = require('../models/Strategy');
 
-/* CREATE POST */
-router.post('/post', auth, async (req, res) => {
-  const { title, description, symbol, timeframe } = req.body;
-
-  const post = await Strategy.create({
-    authorId: req.user.id,
-    authorName: req.user.email,
-    title,
-    description,
-    symbol,
-    timeframe,
+router.post('/', authMiddleware, async (req, res) => {
+  const strategy = await Strategy.create({
+    user: req.user.id,
+    title: req.body.title,
+    description: req.body.description,
   });
 
-  res.json(post);
+  res.status(201).json(strategy);
 });
 
-/* FEED */
-router.get('/feed', auth, async (req, res) => {
-  const posts = await Strategy.find().sort({ createdAt: -1 });
-  res.json(posts);
-});
+router.get('/', async (req, res) => {
+  const strategies = await Strategy.find()
+    .populate('user', 'email')
+    .sort({ createdAt: -1 });
 
-/* LIKE */
-router.post('/like/:id', auth, async (req, res) => {
-  await Strategy.findByIdAndUpdate(req.params.id, {
-    $inc: { likes: 1 },
-  });
-  res.json({ ok: true });
+  res.json(strategies);
 });
 
 module.exports = router;
