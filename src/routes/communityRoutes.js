@@ -5,138 +5,120 @@ const Strategy = require('../models/strategy');
 const User = require('../models/user');
 const authMiddleware = require('../middleware/authMiddleware');
 
-/**
- * =====================================
- * POST /api/community
- * Create a strategy post
- * =====================================
- */
+/* ================= CREATE POST ================= */
 router.post('/', authMiddleware, async (req, res) => {
-  try {
-    const strategy = await Strategy.create({
-      user: req.user.id,
-      content: req.body.content,
-    });
-    res.json(strategy);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to create post' });
-  }
+  const post = await Strategy.create({
+    user: req.user.id,
+    content: req.body.content,
+  });
+  res.json(post);
 });
 
-/**
- * =====================================
- * GET /api/community
- * Fetch community feed
- * =====================================
- */
+/* ================= FETCH FEED ================= */
 router.get('/', async (req, res) => {
+  const posts = await Strategy.find({ isDeleted: false })
+    .populate('user', 'name followers')
+    .populate('comments.user', 'name')
+    .sort({ createdAt: -1 });
+
+  res.json(posts);
+});
+
+/* ================= FETCH SAVED STRATEGIES (🆕 ADDED) ================= */
+router.get('/saved', authMiddleware, async (req, res) => {
   try {
-    const posts = await Strategy.find()
-      .populate('user', 'email followers')
-      .populate('comments.user', 'email')
+    const posts = await Strategy.find({
+      isDeleted: false,
+      savedBy: req.user.id,
+    })
+      .populate('user', 'name followers')
+      .populate('comments.user', 'name')
       .sort({ createdAt: -1 });
 
     res.json(posts);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch feed' });
+    res.status(500).json({ error: 'Failed to fetch saved strategies' });
   }
 });
 
-/**
- * =====================================
- * POST /api/community/:id/like
- * Like a strategy
- * =====================================
- */
+/* ================= LIKE / UNLIKE ================= */
 router.post('/:id/like', authMiddleware, async (req, res) => {
-  try {
-    const post = await Strategy.findById(req.params.id);
-    if (!post) {
-      return res.status(404).json({ error: 'Not found' });
-    }
+  const post = await Strategy.findById(req.params.id);
+  if (!post || post.isDeleted) return res.sendStatus(404);
 
-    if (!post.likes.includes(req.user.id)) {
-      post.likes.push(req.user.id);
-      await post.save();
-    }
+  post.likes.includes(req.user.id)
+    ? post.likes.pull(req.user.id)
+    : post.likes.push(req.user.id);
 
-    res.json(post);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to like post' });
-  }
+  await post.save();
+  res.json({ likes: post.likes });
 });
 
-/**
- * =====================================
- * POST /api/community/:id/comment
- * Add a comment
- * =====================================
- */
+/* ================= SAVE / UNSAVE ================= */
+router.post('/:id/save', authMiddleware, async (req, res) => {
+  const post = await Strategy.findById(req.params.id);
+  if (!post || post.isDeleted) return res.sendStatus(404);
+
+  post.savedBy.includes(req.user.id)
+    ? post.savedBy.pull(req.user.id)
+    : post.savedBy.push(req.user.id);
+
+  await post.save();
+  res.json({ savedBy: post.savedBy });
+});
+
+/* ================= ADD COMMENT ================= */
 router.post('/:id/comment', authMiddleware, async (req, res) => {
-  try {
-    const { text } = req.body;
-    if (!text?.trim()) {
-      return res.status(400).json({ error: 'Comment required' });
-    }
+  const post = await Strategy.findById(req.params.id);
+  if (!post || post.isDeleted) return res.sendStatus(404);
 
-    const post = await Strategy.findById(req.params.id);
-    if (!post) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-
-    post.comments.push({
-      user: req.user.id,
-      text,
-    });
-
-    await post.save();
-    res.json(post);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to add comment' });
-  }
+  post.comments.push({ user: req.user.id, text: req.body.text });
+  await post.save();
+  res.json(post);
 });
 
-/**
- * =====================================
- * POST /api/community/follow/:userId
- * Follow / Unfollow a trader
- * =====================================
- */
-router.post(
-  '/follow/:userId',
-  authMiddleware,
-  async (req, res) => {
-    try {
-      const targetUser = await User.findById(req.params.userId);
-      const currentUser = await User.findById(req.user.id);
+/* ================= DELETE COMMENT ================= */
+router.delete('/:postId/comment/:commentId', authMiddleware, async (req, res) => {
+  const post = await Strategy.findById(req.params.postId);
+  if (!post) return res.sendStatus(404);
 
-      if (!targetUser || !currentUser) {
-        return res.status(404).json({ error: 'User not found' });
-      }
+  const comment = post.comments.id(req.params.commentId);
+  if (!comment) return res.sendStatus(404);
+  if (comment.user.toString() !== req.user.id) return res.sendStatus(403);
 
-      const isFollowing = currentUser.following.includes(
-        targetUser._id
-      );
+  comment.deleteOne();
+  await post.save();
+  res.json({ success: true });
+});
 
-      if (isFollowing) {
-        currentUser.following.pull(targetUser._id);
-        targetUser.followers.pull(currentUser._id);
-      } else {
-        currentUser.following.push(targetUser._id);
-        targetUser.followers.push(currentUser._id);
-      }
+/* ================= DELETE OWN POST ================= */
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const post = await Strategy.findById(req.params.id);
+  if (!post) return res.sendStatus(404);
+  if (post.user.toString() !== req.user.id) return res.sendStatus(403);
 
-      await currentUser.save();
-      await targetUser.save();
+  post.isDeleted = true;
+  await post.save();
+  res.json({ success: true });
+});
 
-      res.json({
-        following: !isFollowing,
-        followersCount: targetUser.followers.length,
-      });
-    } catch (err) {
-      res.status(500).json({ error: 'Follow action failed' });
-    }
-  }
-);
+/* ================= FOLLOW / UNFOLLOW ================= */
+router.post('/follow/:userId', authMiddleware, async (req, res) => {
+  const me = await User.findById(req.user.id);
+  const target = await User.findById(req.params.userId);
+
+  if (!me || !target) return res.sendStatus(404);
+
+  const following = me.following.includes(target._id);
+
+  following
+    ? (me.following.pull(target._id), target.followers.pull(me._id))
+    : (me.following.push(target._id), target.followers.push(me._id));
+
+  await me.save();
+  await target.save();
+
+  res.json({ following: !following });
+});
 
 module.exports = router;

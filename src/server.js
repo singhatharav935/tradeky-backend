@@ -2,12 +2,42 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 
 // Load env
 dotenv.config();
 
 const app = express();
+const server = http.createServer(app);
+
+/* ================= SOCKET.IO ================= */
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+});
+
+// make io available everywhere
+app.set('io', io);
+
+io.on('connection', socket => {
+  console.log('🟢 Socket connected:', socket.id);
+
+  socket.on('join-general', () => {
+    socket.join('general');
+  });
+
+  socket.on('join-group', groupId => {
+    socket.join(`group:${groupId}`);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('🔴 Socket disconnected:', socket.id);
+  });
+});
 
 // ================== MIDDLEWARES ==================
 app.use(cors());
@@ -26,21 +56,17 @@ const authRoutes = require('./routes/authRoutes');
 const protectedRoutes = require('./routes/protectedRoutes');
 const tradeRoutes = require('./routes/tradeRoutes');
 const communityRoutes = require('./routes/communityRoutes');
-const positionsRoutes = require('./routes/positionsRoutes'); // ✅ P&L / Positions
+const positionsRoutes = require('./routes/positionsRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const groupRoutes = require('./routes/groupRoutes');
 
-// Auth
+// ================== USE ROUTES ==================
 app.use('/api/auth', authRoutes);
-
-// Protected test route
 app.use('/api', protectedRoutes);
-
-// Trades
 app.use('/api/trades', tradeRoutes);
-
-// Community (strategies / posts)
 app.use('/api/community', communityRoutes);
-
-// Positions & P&L
+app.use('/api/chat', chatRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/positions', positionsRoutes);
 
 // ================== START SERVER ==================
@@ -51,7 +77,7 @@ const startServer = async () => {
     console.log('🚀 Starting TradeKY backend...');
     await connectDB();
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
     });
   } catch (err) {
