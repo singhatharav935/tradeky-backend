@@ -33,65 +33,37 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-/* ================= LIST GROUPS ================= */
-router.get(
-  '/',
-  authMiddleware.optional,
-  async (req, res) => {
-    try {
-      let query = { isPrivate: false };
+/* ================= LIST GROUPS (PUBLIC SAFE) ================= */
+router.get('/', async (req, res) => {
+  try {
+    const groups = await Group.find({ isPrivate: false })
+      .populate('owner', 'name')
+      .sort({ createdAt: -1 });
 
-      if (req.user?.id) {
-        query = {
-          $or: [
-            { isPrivate: false },
-            { members: req.user.id },
-            { owner: req.user.id },
-          ],
-        };
-      }
-
-      const groups = await Group.find(query)
-        .populate('owner', 'name')
-        .sort({ createdAt: -1 });
-
-      res.json(groups);
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to load groups' });
-    }
+    res.json(groups);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load groups' });
   }
-);
+});
 
 /* ================= GROUP DETAILS ================= */
-router.get(
-  '/:id',
-  authMiddleware.optional,
-  async (req, res) => {
-    try {
-      const group = await Group.findById(req.params.id)
-        .populate('members', 'name')
-        .populate('owner', 'name');
+router.get('/:id', async (req, res) => {
+  try {
+    const group = await Group.findById(req.params.id)
+      .populate('members', 'name')
+      .populate('owner', 'name');
 
-      if (!group) return res.sendStatus(404);
+    if (!group) return res.sendStatus(404);
 
-      if (req.user?.id && group.banned.includes(req.user.id)) {
-        return res.status(403).json({ error: 'You are banned' });
-      }
-
-      if (
-        group.isPrivate &&
-        !group.members.some(m => m._id.toString() === req.user?.id) &&
-        group.owner._id.toString() !== req.user?.id
-      ) {
-        return res.status(403).json({ error: 'Private group' });
-      }
-
-      res.json(group);
-    } catch (err) {
-      res.status(500).json({ error: 'Failed to load group' });
+    if (group.isPrivate) {
+      return res.status(403).json({ error: 'Private group' });
     }
+
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load group' });
   }
-);
+});
 
 /* ================= JOIN / LEAVE ================= */
 router.post('/:id/join', authMiddleware, async (req, res) => {
