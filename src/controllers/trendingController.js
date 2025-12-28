@@ -1,4 +1,4 @@
-const Strategy = require('../models/Strategy');
+const Strategy = require('../models/strategy');
 const Media = require('../models/Media');
 
 /* ================= GET TRENDING ================= */
