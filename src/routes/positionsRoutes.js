@@ -1,5 +1,5 @@
 const express = require('express');
-const Trade = require('../models/Trade');
+const Trade = require('../models/trade');
 const auth = require('../middlewares/authMiddleware');
 
 const router = express.Router();
