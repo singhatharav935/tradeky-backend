@@ -59,6 +59,7 @@ const communityRoutes = require('./routes/communityRoutes');
 const positionsRoutes = require('./routes/positionsRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const groupRoutes = require('./routes/groupRoutes');
+const mediaRoutes = require('./routes/mediaRoutes'); // ✅ NEW
 
 // ================== USE ROUTES ==================
 app.use('/api/auth', authRoutes);
@@ -68,6 +69,7 @@ app.use('/api/community', communityRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/positions', positionsRoutes);
+app.use('/api/media', mediaRoutes); // ✅ MEDIA LIVE
 
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 7000;
