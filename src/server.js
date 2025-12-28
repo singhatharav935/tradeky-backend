@@ -59,17 +59,32 @@ const communityRoutes = require('./routes/communityRoutes');
 const positionsRoutes = require('./routes/positionsRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const groupRoutes = require('./routes/groupRoutes');
-const mediaRoutes = require('./routes/mediaRoutes'); // ✅ NEW
+
+const mediaRoutes = require('./routes/mediaRoutes');
+const strategyRoutes = require('./routes/strategyRoutes');
+const newsRoutes = require('./routes/newsRoutes');
+const myPostsRoutes = require('./routes/myPostsRoutes');
+const topTradersRoutes = require('./routes/topTradersRoutes');
+const trendingRoutes = require('./routes/trendingRoutes');
+const membersRoutes = require('./routes/membersRoutes'); // ✅ MEMBERS
 
 // ================== USE ROUTES ==================
 app.use('/api/auth', authRoutes);
 app.use('/api', protectedRoutes);
+
 app.use('/api/trades', tradeRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/positions', positionsRoutes);
-app.use('/api/media', mediaRoutes); // ✅ MEDIA LIVE
+
+app.use('/api/media', mediaRoutes);
+app.use('/api/strategies', strategyRoutes);
+app.use('/api/news', newsRoutes);
+app.use('/api/my-posts', myPostsRoutes);
+app.use('/api/top-traders', topTradersRoutes);
+app.use('/api/trending', trendingRoutes);
+app.use('/api/members', membersRoutes); // ✅ MEMBERS LIVE
 
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 7000;
