@@ -1,4 +1,4 @@
-const Strategy = require('../models/Strategy');
+const Strategy = require('../models/strategy');
 
 /* ================= CREATE STRATEGY ================= */
 exports.createStrategy = async (req, res) => {
