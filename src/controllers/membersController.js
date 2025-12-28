@@ -1,4 +1,4 @@
-const User = require('../models/User');
+const User = require('../models/user');
 const Strategy = require('../models/Strategy');
 const Media = require('../models/Media');
 
