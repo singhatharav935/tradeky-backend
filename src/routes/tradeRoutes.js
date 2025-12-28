@@ -1,6 +1,7 @@
 const express = require('express');
 const Trade = require('../models/trade');
-const authMiddleware = require('../middleware/authMiddleware');
+const authMiddleware = require('../middlewares/authMiddleware');
+
 
 const router = express.Router();
 
