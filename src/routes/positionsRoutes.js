@@ -1,14 +1,14 @@
 const express = require('express');
 const Trade = require('../models/trade');
-const auth = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 /**
  * GET /api/positions
- * Returns net positions per symbol
+ * Net positions + Realized & Unrealized P&L
  */
-router.get('/', auth, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const trades = await Trade.find({ user: req.user.id }).sort({ createdAt: 1 });
 
@@ -18,7 +18,7 @@ router.get('/', auth, async (req, res) => {
       if (!positions[t.symbol]) {
         positions[t.symbol] = {
           symbol: t.symbol,
-          qty: 0,
+          quantity: 0,
           avgPrice: 0,
           realizedPnl: 0,
         };
@@ -27,23 +27,35 @@ router.get('/', auth, async (req, res) => {
       const pos = positions[t.symbol];
 
       if (t.side === 'BUY') {
-        const totalCost = pos.avgPrice * pos.qty + t.price * t.quantity;
-        pos.qty += t.quantity;
-        pos.avgPrice = totalCost / pos.qty;
+        const totalCost =
+          pos.avgPrice * pos.quantity + t.price * t.quantity;
+
+        pos.quantity += t.quantity;
+        pos.avgPrice =
+          pos.quantity === 0 ? 0 : totalCost / pos.quantity;
       } else {
         // SELL
-        pos.realizedPnl += (t.price - pos.avgPrice) * t.quantity;
-        pos.qty -= t.quantity;
+        const sellQty = Math.min(pos.quantity, t.quantity);
 
-        if (pos.qty === 0) {
+        pos.realizedPnl +=
+          (t.price - pos.avgPrice) * sellQty;
+
+        pos.quantity -= sellQty;
+
+        if (pos.quantity === 0) {
           pos.avgPrice = 0;
         }
       }
     }
 
-    res.json(Object.values(positions));
+    // Only open positions
+    const openPositions = Object.values(positions).filter(
+      p => p.quantity !== 0
+    );
+
+    res.json(openPositions);
   } catch (err) {
-    console.error(err);
+    console.error('Positions calc error:', err);
     res.status(500).json({ error: 'Failed to calculate positions' });
   }
 });
