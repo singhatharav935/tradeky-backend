@@ -3,7 +3,7 @@ const router = express.Router();
 
 const Strategy = require('../models/strategy');
 const User = require('../models/user');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /* ================= CREATE POST ================= */
 router.post('/', authMiddleware, async (req, res) => {

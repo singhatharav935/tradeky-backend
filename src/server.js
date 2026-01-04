@@ -68,6 +68,9 @@ const topTradersRoutes = require('./routes/topTradersRoutes');
 const trendingRoutes = require('./routes/trendingRoutes');
 const membersRoutes = require('./routes/membersRoutes'); // ✅ MEMBERS
 
+// ✅ NEW — ACCOUNT / MONEY / P&L ROUTES (ADDED, NOTHING REMOVED)
+const accountRoutes = require('./routes/accountRoutes');
+
 // ================== USE ROUTES ==================
 app.use('/api/auth', authRoutes);
 app.use('/api', protectedRoutes);
@@ -77,6 +80,9 @@ app.use('/api/community', communityRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/positions', positionsRoutes);
+
+// ✅ NEW — MONEY / BALANCE / P&L
+app.use('/api/account', accountRoutes);
 
 app.use('/api/media', mediaRoutes);
 app.use('/api/strategies', strategyRoutes);

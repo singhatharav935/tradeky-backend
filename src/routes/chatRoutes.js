@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Message = require('../models/Message');
 const Group = require('../models/Group');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 /* ================= GENERAL CHAT ================= */
 

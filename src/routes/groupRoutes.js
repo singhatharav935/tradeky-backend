@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Group = require('../models/Group');
-const authMiddleware = require('../middlewares/authMiddleware');
+const authMiddleware = require('../middleware/authMiddleware');
 
 const isAdmin = (group, userId) =>
   group.owner.toString() === userId ||
