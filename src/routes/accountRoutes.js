@@ -7,54 +7,63 @@ const router = express.Router();
 
 /**
  * GET /api/account/summary
- * Balance, Unrealized P&L, Daily P&L, Capital
+ * Balance, Unrealized P&L (frontend), Daily P&L (server), Capital
  */
 router.get('/summary', authMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.sendStatus(404);
 
-    const trades = await Trade.find({ user: req.user.id });
-
-    let unrealizedPnl = 0;
-    let dailyPnl = 0;
+    const trades = await Trade.find({ user: req.user.id })
+      .sort({ createdAt: 1 });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const positions = {};
+    let dailyPnl = 0;
 
     for (const t of trades) {
       if (!positions[t.symbol]) {
-        positions[t.symbol] = { qty: 0, avg: 0 };
+        positions[t.symbol] = {
+          qty: 0,
+          avgPrice: 0,
+        };
       }
 
       const pos = positions[t.symbol];
 
       if (t.side === 'BUY') {
-        const total = pos.avg * pos.qty + t.price * t.quantity;
-        pos.qty += t.quantity;
-        pos.avg = total / pos.qty;
-      } else {
-        const pnl = (t.price - pos.avg) * t.quantity;
-        pos.qty -= t.quantity;
+        const totalCost =
+          pos.avgPrice * pos.qty + t.price * t.quantity;
 
+        pos.qty += t.quantity;
+        pos.avgPrice =
+          pos.qty === 0 ? 0 : totalCost / pos.qty;
+      } else {
+        // SELL
+        const sellQty = Math.min(pos.qty, t.quantity);
+        const realized =
+          (t.price - pos.avgPrice) * sellQty;
+
+        pos.qty -= sellQty;
+
+        // ✅ DAILY P&L → ONLY TODAY'S REALIZED
         if (t.createdAt >= today) {
-          dailyPnl += pnl;
+          dailyPnl += realized;
+        }
+
+        if (pos.qty === 0) {
+          pos.avgPrice = 0;
         }
       }
     }
 
-    // ⚠️ Unrealized uses last traded price (demo-safe)
-    for (const symbol in positions) {
-      const pos = positions[symbol];
-      if (pos.qty > 0) {
-        unrealizedPnl += 0; // frontend will calculate live
-      }
-    }
+    // Unrealized handled on frontend (live price)
+    const unrealizedPnl = 0;
 
     const capital =
-      user.balance + unrealizedPnl + dailyPnl;
+      user.balance + dailyPnl + unrealizedPnl;
 
     res.json({
       balance: user.balance,
