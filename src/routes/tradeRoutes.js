@@ -19,40 +19,39 @@ router.post('/', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.sendStatus(404);
 
-    // ================= SELL → UPDATE REALIZED P&L =================
+    /* ========= SELL → REALIZED P&L ========= */
     if (side === 'SELL') {
-      // Find previous BUY trades to calculate avg price
       const trades = await Trade.find({
         user: req.user.id,
         symbol,
       }).sort({ createdAt: 1 });
 
-      let totalQty = 0;
+      let openQty = 0;
       let avgPrice = 0;
 
       for (const t of trades) {
         if (t.side === 'BUY') {
-          const totalCost =
-            avgPrice * totalQty + t.price * t.quantity;
-          totalQty += t.quantity;
-          avgPrice = totalCost / totalQty;
+          const totalCost = avgPrice * openQty + t.price * t.quantity;
+          openQty += t.quantity;
+          avgPrice = totalCost / openQty;
         } else {
-          totalQty -= t.quantity;
-          if (totalQty <= 0) {
-            totalQty = 0;
+          // reduce open qty only
+          openQty -= t.quantity;
+          if (openQty <= 0) {
+            openQty = 0;
             avgPrice = 0;
           }
         }
       }
 
-      const sellQty = Math.min(totalQty, qty);
+      const sellQty = Math.min(openQty, qty);
       const realized = (price - avgPrice) * sellQty;
 
       user.realizedPnl += realized;
       await user.save();
     }
 
-    // ================= CREATE TRADE =================
+    /* ========= CREATE TRADE ========= */
     const trade = await Trade.create({
       user: req.user.id,
       symbol,
