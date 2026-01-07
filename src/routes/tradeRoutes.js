@@ -15,27 +15,12 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const qty = quantity || 1;
-    const tradeValue = price * qty;
 
     const user = await User.findById(req.user.id);
     if (!user) return res.sendStatus(404);
 
-    // 💸 BUY → CHECK BALANCE
-    if (side === 'BUY') {
-      if (user.balance < tradeValue) {
-        return res.status(400).json({
-          error: 'Insufficient balance',
-          balance: user.balance,
-        });
-      }
-
-      user.balance -= tradeValue;
-    }
-
-    // 💰 SELL → ADD BALANCE
-    if (side === 'SELL') {
-      user.balance += tradeValue;
-    }
+    // ❌ NO BALANCE DEDUCTION OR ADDITION HERE
+    // Trades only represent executions, not cash flow
 
     const trade = await Trade.create({
       user: req.user.id,
@@ -44,8 +29,6 @@ router.post('/', authMiddleware, async (req, res) => {
       price,
       quantity: qty,
     });
-
-    await user.save();
 
     res.status(201).json({
       trade,

@@ -7,7 +7,7 @@ const router = express.Router();
 
 /**
  * GET /api/account/summary
- * Balance, Unrealized P&L (frontend), Daily P&L (server), Capital
+ * Balance, Daily P&L (server), Capital
  */
 router.get('/summary', authMiddleware, async (req, res) => {
   try {
@@ -22,13 +22,11 @@ router.get('/summary', authMiddleware, async (req, res) => {
 
     const positions = {};
     let dailyPnl = 0;
+    let totalRealizedPnl = 0;
 
     for (const t of trades) {
       if (!positions[t.symbol]) {
-        positions[t.symbol] = {
-          qty: 0,
-          avgPrice: 0,
-        };
+        positions[t.symbol] = { qty: 0, avgPrice: 0 };
       }
 
       const pos = positions[t.symbol];
@@ -38,36 +36,28 @@ router.get('/summary', authMiddleware, async (req, res) => {
           pos.avgPrice * pos.qty + t.price * t.quantity;
 
         pos.qty += t.quantity;
-        pos.avgPrice =
-          pos.qty === 0 ? 0 : totalCost / pos.qty;
+        pos.avgPrice = totalCost / pos.qty;
       } else {
-        // SELL
         const sellQty = Math.min(pos.qty, t.quantity);
-        const realized =
-          (t.price - pos.avgPrice) * sellQty;
+        const realized = (t.price - pos.avgPrice) * sellQty;
 
         pos.qty -= sellQty;
+        totalRealizedPnl += realized;
 
-        // ✅ DAILY P&L → ONLY TODAY'S REALIZED
         if (t.createdAt >= today) {
           dailyPnl += realized;
         }
 
-        if (pos.qty === 0) {
-          pos.avgPrice = 0;
-        }
+        if (pos.qty === 0) pos.avgPrice = 0;
       }
     }
 
-    // Unrealized handled on frontend (live price)
-    const unrealizedPnl = 0;
-
-    const capital =
-      user.balance + dailyPnl + unrealizedPnl;
+    const balance = user.balance; // fixed demo capital
+    const capital = balance + totalRealizedPnl;
 
     res.json({
-      balance: user.balance,
-      unrealizedPnl,
+      balance,
+      unrealizedPnl: 0, // frontend live
       dailyPnl,
       capital,
     });
