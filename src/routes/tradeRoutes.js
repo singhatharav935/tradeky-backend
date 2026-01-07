@@ -19,9 +19,40 @@ router.post('/', authMiddleware, async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.sendStatus(404);
 
-    // ❌ NO BALANCE DEDUCTION OR ADDITION HERE
-    // Trades only represent executions, not cash flow
+    // ================= SELL → UPDATE REALIZED P&L =================
+    if (side === 'SELL') {
+      // Find previous BUY trades to calculate avg price
+      const trades = await Trade.find({
+        user: req.user.id,
+        symbol,
+      }).sort({ createdAt: 1 });
 
+      let totalQty = 0;
+      let avgPrice = 0;
+
+      for (const t of trades) {
+        if (t.side === 'BUY') {
+          const totalCost =
+            avgPrice * totalQty + t.price * t.quantity;
+          totalQty += t.quantity;
+          avgPrice = totalCost / totalQty;
+        } else {
+          totalQty -= t.quantity;
+          if (totalQty <= 0) {
+            totalQty = 0;
+            avgPrice = 0;
+          }
+        }
+      }
+
+      const sellQty = Math.min(totalQty, qty);
+      const realized = (price - avgPrice) * sellQty;
+
+      user.realizedPnl += realized;
+      await user.save();
+    }
+
+    // ================= CREATE TRADE =================
     const trade = await Trade.create({
       user: req.user.id,
       symbol,
@@ -33,6 +64,7 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(201).json({
       trade,
       balance: user.balance,
+      realizedPnl: user.realizedPnl,
     });
   } catch (err) {
     console.error('Trade create error:', err);

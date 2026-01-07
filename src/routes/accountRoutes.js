@@ -22,7 +22,6 @@ router.get('/summary', authMiddleware, async (req, res) => {
 
     const positions = {};
     let dailyPnl = 0;
-    let totalRealizedPnl = 0;
 
     for (const t of trades) {
       if (!positions[t.symbol]) {
@@ -42,8 +41,8 @@ router.get('/summary', authMiddleware, async (req, res) => {
         const realized = (t.price - pos.avgPrice) * sellQty;
 
         pos.qty -= sellQty;
-        totalRealizedPnl += realized;
 
+        // ✅ DAILY P&L (today only)
         if (t.createdAt >= today) {
           dailyPnl += realized;
         }
@@ -52,8 +51,8 @@ router.get('/summary', authMiddleware, async (req, res) => {
       }
     }
 
-    const balance = user.balance; // fixed demo capital
-    const capital = balance + totalRealizedPnl;
+    const balance = user.balance;
+    const capital = balance + user.realizedPnl;
 
     res.json({
       balance,
