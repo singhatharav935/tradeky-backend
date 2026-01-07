@@ -25,6 +25,12 @@ const userSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // ✅ PERSISTED REALIZED P&L
+    realizedPnl: {
+      type: Number,
+      default: 0,
+    },
+
     followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },
