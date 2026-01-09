@@ -8,21 +8,24 @@ const authMiddleware = require('../middleware/authMiddleware');
 /* ================= CREATE STRATEGY (TEXT + MEDIA) ================= */
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { content, media = [] } = req.body;
+    const { content = '', media = [] } = req.body;
 
-    if (!content || !content.trim()) {
-      return res.status(400).json({ message: 'Content is required' });
+    // ✅ ALLOW: text OR media (at least one required)
+    if (!content.trim() && (!Array.isArray(media) || media.length === 0)) {
+      return res
+        .status(400)
+        .json({ message: 'Post must have text or media' });
     }
 
     const post = await Strategy.create({
       user: req.user.id,
       content: content.trim(),
-      media, // ✅ embedded media [{ type, url }]
+      media, // [{ type: 'image'|'video', url }]
     });
 
-    res.json(post);
+    res.status(201).json(post);
   } catch (err) {
-    console.error(err);
+    console.error('CREATE STRATEGY ERROR:', err);
     res.status(500).json({ error: 'Failed to create strategy' });
   }
 });
@@ -89,9 +92,13 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
   const post = await Strategy.findById(req.params.id);
   if (!post || post.isDeleted) return res.sendStatus(404);
 
+  if (!req.body.text?.trim()) {
+    return res.status(400).json({ message: 'Comment text required' });
+  }
+
   post.comments.push({
     user: req.user.id,
-    text: req.body.text,
+    text: req.body.text.trim(),
   });
 
   await post.save();

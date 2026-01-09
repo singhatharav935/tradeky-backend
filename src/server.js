@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
+const path = require('path');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 
@@ -43,6 +44,9 @@ io.on('connection', socket => {
 app.use(cors());
 app.use(express.json());
 
+// ✅ SERVE UPLOADED FILES (NEW — REQUIRED)
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // ================== HEALTH ==================
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -66,9 +70,12 @@ const newsRoutes = require('./routes/newsRoutes');
 const myPostsRoutes = require('./routes/myPostsRoutes');
 const topTradersRoutes = require('./routes/topTradersRoutes');
 const trendingRoutes = require('./routes/trendingRoutes');
-const membersRoutes = require('./routes/membersRoutes'); // ✅ MEMBERS
+const membersRoutes = require('./routes/membersRoutes');
 
-// ✅ NEW — ACCOUNT / MONEY / P&L ROUTES (ADDED, NOTHING REMOVED)
+// ✅ NEW — UPLOAD ROUTES (THIS FIXES YOUR ISSUE)
+const uploadRoutes = require('./routes/uploadRoutes');
+
+// ✅ ACCOUNT / MONEY / P&L
 const accountRoutes = require('./routes/accountRoutes');
 
 // ================== USE ROUTES ==================
@@ -81,16 +88,22 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/positions', positionsRoutes);
 
-// ✅ NEW — MONEY / BALANCE / P&L
+// ✅ MONEY
 app.use('/api/account', accountRoutes);
 
+// ✅ MEDIA + STRATEGY
 app.use('/api/media', mediaRoutes);
 app.use('/api/strategies', strategyRoutes);
+
+// ✅ FEEDS
 app.use('/api/news', newsRoutes);
 app.use('/api/my-posts', myPostsRoutes);
 app.use('/api/top-traders', topTradersRoutes);
 app.use('/api/trending', trendingRoutes);
-app.use('/api/members', membersRoutes); // ✅ MEMBERS LIVE
+app.use('/api/members', membersRoutes);
+
+// ✅ FILE UPLOAD (CRITICAL)
+app.use('/api/upload', uploadRoutes);
 
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 7000;
