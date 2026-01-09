@@ -5,26 +5,43 @@ const Strategy = require('../models/strategy');
 const User = require('../models/user');
 const authMiddleware = require('../middleware/authMiddleware');
 
-/* ================= CREATE POST ================= */
+/* ================= CREATE STRATEGY (TEXT + MEDIA) ================= */
 router.post('/', authMiddleware, async (req, res) => {
-  const post = await Strategy.create({
-    user: req.user.id,
-    content: req.body.content,
-  });
-  res.json(post);
+  try {
+    const { content, media = [] } = req.body;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ message: 'Content is required' });
+    }
+
+    const post = await Strategy.create({
+      user: req.user.id,
+      content: content.trim(),
+      media, // ✅ embedded media [{ type, url }]
+    });
+
+    res.json(post);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to create strategy' });
+  }
 });
 
-/* ================= FETCH FEED ================= */
+/* ================= FETCH STRATEGY FEED ================= */
 router.get('/', async (req, res) => {
-  const posts = await Strategy.find({ isDeleted: false })
-    .populate('user', 'name followers')
-    .populate('comments.user', 'name')
-    .sort({ createdAt: -1 });
+  try {
+    const posts = await Strategy.find({ isDeleted: false })
+      .populate('user', 'name followers')
+      .populate('comments.user', 'name')
+      .sort({ createdAt: -1 });
 
-  res.json(posts);
+    res.json(posts);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch strategies' });
+  }
 });
 
-/* ================= FETCH SAVED STRATEGIES (🆕 ADDED) ================= */
+/* ================= FETCH SAVED STRATEGIES ================= */
 router.get('/saved', authMiddleware, async (req, res) => {
   try {
     const posts = await Strategy.find({
@@ -72,7 +89,11 @@ router.post('/:id/comment', authMiddleware, async (req, res) => {
   const post = await Strategy.findById(req.params.id);
   if (!post || post.isDeleted) return res.sendStatus(404);
 
-  post.comments.push({ user: req.user.id, text: req.body.text });
+  post.comments.push({
+    user: req.user.id,
+    text: req.body.text,
+  });
+
   await post.save();
   res.json(post);
 });
