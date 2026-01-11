@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const alertRuleSchema = new mongoose.Schema(
   {
-    // 👤 Rule owner
+    /* ================= USER ================= */
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -10,47 +10,89 @@ const alertRuleSchema = new mongoose.Schema(
       index: true,
     },
 
-    // 📈 Instrument
+    /* ================= MARKET ================= */
+    marketType: {
+      type: String,
+      enum: ['DEMO', 'LIVE'],
+      default: 'DEMO', // 👈 demo first, live later
+      index: true,
+    },
+
+    exchange: {
+      type: String,
+      default: 'NSE', // NSE | BINANCE | BYBIT (future)
+    },
+
     symbol: {
       type: String,
       required: true,
       index: true,
     },
 
-    // ⏱ Timeframe (1m, 5m, 15m, 1h)
     timeframe: {
       type: String,
-      required: true,
+      required: true, // 1m, 5m, 15m, 1h
     },
 
-    // 🧠 Indicator logic (flexible JSON)
+    /* ================= LOGIC ENGINE ================= */
     logic: {
-      type: {
-        indicator: { type: String, required: true }, // EMA, RSI, VWAP
-        params: { type: Object, default: {} },       // { fast: 9, slow: 21 }
-        condition: { type: String, required: true }, // CROSS_ABOVE, GT, LT
+      indicator: {
+        type: String,
+        required: true, // EMA, RSI, VWAP, MACD
+        index: true,
       },
-      required: true,
+
+      params: {
+        type: Object,
+        default: {}, // { period: 14 } or { fast: 9, slow: 21 }
+      },
+
+      condition: {
+        type: String,
+        required: true, // CROSS_ABOVE, CROSS_BELOW, GT, LT
+      },
+
+      value: {
+        type: Number,
+        default: null, // RSI > 60 etc.
+      },
     },
 
-    // 🚨 What type of alert
+    /* ================= TRADING INTENT ================= */
     triggerType: {
       type: String,
       enum: ['ENTRY', 'EXIT'],
       default: 'ENTRY',
     },
 
-    // ⏳ Status
+    side: {
+      type: String,
+      enum: ['BUY', 'SELL'],
+      default: 'BUY',
+    },
+
+    /* ================= RISK / CONTROL ================= */
     isActive: {
       type: Boolean,
       default: true,
       index: true,
     },
 
-    // 🧯 Prevent spam
+    cooldownSeconds: {
+      type: Number,
+      default: 300, // 5 min spam protection
+    },
+
     lastTriggeredAt: {
       type: Date,
       default: null,
+    },
+
+    /* ================= SYSTEM ================= */
+    createdFrom: {
+      type: String,
+      enum: ['UI', 'API'],
+      default: 'UI',
     },
   },
   { timestamps: true }
