@@ -40,6 +40,15 @@ const groupSchema = new mongoose.Schema(
       },
     ],
 
+    // 📨 JOIN REQUESTS (✅ ADDED — REQUIRED FOR PRIVATE GROUPS)
+    joinRequests: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        index: true,
+      },
+    ],
+
     // 🚫 banned users
     banned: [
       {

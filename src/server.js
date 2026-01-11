@@ -44,7 +44,7 @@ io.on('connection', socket => {
 app.use(cors());
 app.use(express.json());
 
-// ✅ SERVE UPLOADED FILES (NEW — REQUIRED)
+// ✅ SERVE UPLOADED FILES
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ================== HEALTH ==================
@@ -63,6 +63,7 @@ const communityRoutes = require('./routes/communityRoutes');
 const positionsRoutes = require('./routes/positionsRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const groupRoutes = require('./routes/groupRoutes');
+const groupPostRoutes = require('./routes/groupPostRoutes'); // ✅ GROUP POSTS
 
 const mediaRoutes = require('./routes/mediaRoutes');
 const strategyRoutes = require('./routes/strategyRoutes');
@@ -72,10 +73,7 @@ const topTradersRoutes = require('./routes/topTradersRoutes');
 const trendingRoutes = require('./routes/trendingRoutes');
 const membersRoutes = require('./routes/membersRoutes');
 
-// ✅ NEW — UPLOAD ROUTES (THIS FIXES YOUR ISSUE)
 const uploadRoutes = require('./routes/uploadRoutes');
-
-// ✅ ACCOUNT / MONEY / P&L
 const accountRoutes = require('./routes/accountRoutes');
 
 // ================== USE ROUTES ==================
@@ -86,9 +84,10 @@ app.use('/api/trades', tradeRoutes);
 app.use('/api/community', communityRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/groups', groupRoutes);
+app.use('/api/group-posts', groupPostRoutes); // ✅ GROUP POSTS LIVE
 app.use('/api/positions', positionsRoutes);
 
-// ✅ MONEY
+// ✅ ACCOUNT / MONEY
 app.use('/api/account', accountRoutes);
 
 // ✅ MEDIA + STRATEGY
@@ -102,7 +101,7 @@ app.use('/api/top-traders', topTradersRoutes);
 app.use('/api/trending', trendingRoutes);
 app.use('/api/members', membersRoutes);
 
-// ✅ FILE UPLOAD (CRITICAL)
+// ✅ FILE UPLOAD
 app.use('/api/upload', uploadRoutes);
 
 // ================== START SERVER ==================
