@@ -34,20 +34,43 @@ function calculateRSI(values, period = 14) {
 async function getIndicator({ symbol, indicator, params }) {
   if (!indicatorCache[symbol]) indicatorCache[symbol] = [];
 
-  // simulate price series
+  // ⚠️ simulated price feed (replace later with real candles)
   const price = 100 + Math.random() * 10;
   indicatorCache[symbol].push(price);
 
   if (indicatorCache[symbol].length < 30) return null;
 
   const values = indicatorCache[symbol].slice(-30);
+  const prevValues = values.slice(0, -1);
 
   switch (indicator) {
-    case 'EMA':
-      return calculateEMA(values, params?.period || 9);
+    case 'EMA': {
+      const fast = params?.fast || params?.period || 9;
+      const slow = params?.slow || 21;
 
-    case 'RSI':
-      return calculateRSI(values, params?.period || 14);
+      const fastPrev = calculateEMA(prevValues, fast);
+      const fastCurrent = calculateEMA(values, fast);
+
+      const slowPrev = calculateEMA(prevValues, slow);
+      const slowCurrent = calculateEMA(values, slow);
+
+      return {
+        prev: fastPrev,
+        current: fastCurrent,
+        fast: fastCurrent,
+        slow: slowCurrent,
+      };
+    }
+
+    case 'RSI': {
+      const prev = calculateRSI(prevValues, params?.period || 14);
+      const current = calculateRSI(values, params?.period || 14);
+
+      return {
+        prev,
+        current,
+      };
+    }
 
     default:
       return null;
