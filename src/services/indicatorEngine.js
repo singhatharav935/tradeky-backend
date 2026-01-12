@@ -34,9 +34,19 @@ function calculateRSI(values, period = 14) {
 async function getIndicator({ symbol, indicator, params }) {
   if (!indicatorCache[symbol]) indicatorCache[symbol] = [];
 
-  // ⚠️ simulated price feed (replace later with real candles)
-  const price = 100 + Math.random() * 10;
-  indicatorCache[symbol].push(price);
+  /* ================= STABLE PRICE FEED (OPTION A) ================= */
+  if (indicatorCache[symbol].length === 0) {
+    indicatorCache[symbol].push(100); // base price
+  } else {
+    const lastPrice =
+      indicatorCache[symbol][indicatorCache[symbol].length - 1];
+
+    // small controlled drift (no teleport)
+    const price =
+      lastPrice + (Math.random() - 0.5) * 0.2;
+
+    indicatorCache[symbol].push(price);
+  }
 
   if (indicatorCache[symbol].length < 30) return null;
 
