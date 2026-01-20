@@ -37,6 +37,7 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'AlertRule',
       default: null,
+      index: true,
     },
 
     // 📈 Instrument snapshot (AI only)
@@ -53,6 +54,38 @@ const notificationSchema = new mongoose.Schema(
 
     triggerValue: {
       type: Number,
+      default: null,
+    },
+
+    // 🧠 AI evaluation metadata (Layer 2 & 3)
+    meta: {
+      trendBias: {
+        type: String,
+        enum: ['BULLISH', 'BEARISH', 'NEUTRAL'],
+        default: null,
+      },
+      volatility: {
+        type: Number,
+        default: null,
+      },
+      confidence: {
+        type: Number,
+        min: 0,
+        max: 100,
+        default: null,
+      },
+    },
+
+    // 🎯 LAYER 3: Outcome tracking (AI only)
+    outcome: {
+      type: String,
+      enum: ['WIN', 'LOSS', 'IGNORED', 'PENDING'],
+      default: 'PENDING',
+      index: true,
+    },
+
+    evaluatedAt: {
+      type: Date,
       default: null,
     },
 
