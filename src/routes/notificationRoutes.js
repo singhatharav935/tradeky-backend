@@ -63,4 +63,79 @@ router.get('/unread/count', authMiddleware, async (req, res) => {
   }
 });
 
+/* ================= LAYER 3: SKILL, TIER & LEARNING ================= */
+router.get('/stats/skill', authMiddleware, async (req, res) => {
+  try {
+    const alerts = await Notification.find({
+      user: req.user.id,
+      type: { $in: ['ALERT_ENTRY', 'ALERT_EXIT'] },
+      outcome: { $ne: 'PENDING' },
+    });
+
+    let total = alerts.length;
+    let win = 0;
+    let loss = 0;
+    let ignored = 0;
+
+    let confidenceWeightedScore = 0;
+    let confidenceTotal = 0;
+
+    for (const a of alerts) {
+      if (a.outcome === 'WIN') win++;
+      if (a.outcome === 'LOSS') loss++;
+      if (a.outcome === 'IGNORED') ignored++;
+
+      if (a.meta?.confidence != null) {
+        confidenceTotal += a.meta.confidence;
+        if (a.outcome === 'WIN') {
+          confidenceWeightedScore += a.meta.confidence;
+        }
+      }
+    }
+
+    const accuracy =
+      win + loss > 0
+        ? Number(((win / (win + loss)) * 100).toFixed(2))
+        : 0;
+
+    const skillScore =
+      confidenceTotal > 0
+        ? Number(
+            ((confidenceWeightedScore / confidenceTotal) * 100).toFixed(2)
+          )
+        : 0;
+
+    /* ================= SKILL TIER ================= */
+    let skillTier = 'BEGINNER';
+
+    if (total >= 20 && accuracy >= 55) skillTier = 'INTERMEDIATE';
+    if (total >= 50 && accuracy >= 65 && skillScore >= 60)
+      skillTier = 'PRO';
+    if (total >= 100 && accuracy >= 72 && skillScore >= 70)
+      skillTier = 'ELITE';
+
+    /* ================= LEARNING SIGNAL ================= */
+    let learningSignal = 'CONSERVATIVE';
+
+    if (skillTier === 'INTERMEDIATE') learningSignal = 'BALANCED';
+    if (skillTier === 'PRO' || skillTier === 'ELITE')
+      learningSignal = 'AGGRESSIVE';
+
+    res.json({
+      totalAlerts: total,
+      win,
+      loss,
+      ignored,
+      accuracyPercent: accuracy,
+      skillScore,
+      skillTier,
+      learningSignal,
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: 'Failed to calculate skill stats',
+    });
+  }
+});
+
 module.exports = router;
