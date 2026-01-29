@@ -10,6 +10,9 @@ const connectDB = require('./config/db');
 // 🔔 ALERT SCHEDULER (AI ENGINE)
 const { startAlertScheduler } = require('./services/alertScheduler');
 
+// ✅ MARKET ROUTES (TradingView / Paper Trading)
+const marketRoutes = require('./routes/marketRoutes');
+
 // Load env
 dotenv.config();
 
@@ -110,6 +113,9 @@ app.use('/api/trending', trendingRoutes);
 app.use('/api/members', membersRoutes);
 
 app.use('/api/upload', uploadRoutes);
+
+// ✅ MARKET DATA (TradingView / Demo Feed)
+app.use('/api/market', marketRoutes);
 
 /* ================= START SERVER ================= */
 const PORT = process.env.PORT || 7000;
